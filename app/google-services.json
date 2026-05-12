@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "374561610291",
+    "project_id": "ciclo-guia",
+    "storage_bucket": "ciclo-guia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374561610291:android:339847538d7b5f8a92e146",
+        "android_client_info": {
+          "package_name": "com.cicloguia.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPBeFg317HpeddeAWIuW8V5APxw9z_lsY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
