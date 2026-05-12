@@ -1,0 +1,45 @@
+name: Update Cycleways Dataset
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  update-cycleways:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download ArcGIS GeoJSON
+        run: |
+          mkdir -p public/public-data/cycleways
+          curl -L "https://sit.icl.gob.pe/arcgis/rest/services/AGOL_Servicios/CICLOVIA_17_11_2022_V3/MapServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=geojson" \
+            -o public/public-data/cycleways/latest.geojson
+
+      - name: Generate metadata
+        run: |
+          SHA=$(shasum -a 256 public/public-data/cycleways/latest.geojson | awk '{ print $1 }')
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          FEATURE_COUNT=$(python3 -c "import json; d=json.load(open('public/public-data/cycleways/latest.geojson')); print(len(d.get('features', [])))")
+          ROUTE_COUNT=$(python3 -c "import json; d=json.load(open('public/public-data/cycleways/latest.geojson')); print(len(set(f.get('properties', {}).get('CODIGO') for f in d.get('features', []) if f.get('properties', {}).get('CODIGO'))))")
+
+          cat > public/public-data/cycleways/metadata.json <<EOF
+          {
+            "version": "$DATE",
+            "lastUpdated": "$DATE",
+            "geoJsonUrl": "https://ciclo-guia.web.app/public-data/cycleways/latest.geojson",
+            "checksum": "$SHA",
+            "featureCount": $FEATURE_COUNT,
+            "routeCount": $ROUTE_COUNT
+          }
+          EOF
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_CICLO_GUIA }}"
+          projectId: ciclo-guia
+          channelId: live
