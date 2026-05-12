@@ -1,0 +1,42 @@
+name: Diagnose ArcGIS Connectivity
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose-arcgis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show runner network info
+        run: |
+          echo "Runner public IP:"
+          curl -s https://api.ipify.org || true
+          echo ""
+          echo "Date:"
+          date -u
+
+      - name: Diagnose DNS and HTTPS connectivity
+        run: |
+          echo "DNS lookup:"
+          nslookup sit.icl.gob.pe || true
+
+          echo ""
+          echo "Basic HTTPS HEAD request:"
+          curl -vI --connect-timeout 20 --max-time 60 \
+            https://sit.icl.gob.pe || true
+
+          echo ""
+          echo "ArcGIS lightweight endpoint test:"
+          curl -vL --connect-timeout 20 --max-time 60 \
+            "https://sit.icl.gob.pe/arcgis/rest/services/AGOL_Servicios/CICLOVIA_17_11_2022_V3/MapServer/1/query?where=1%3D1&outFields=OBJECTID&outSR=4326&f=json" \
+            -o /tmp/arcgis-test.json || true
+
+          echo ""
+          echo "Downloaded file info:"
+          ls -lh /tmp/arcgis-test.json || true
+          wc -c /tmp/arcgis-test.json || true
+
+          echo ""
+          echo "Preview response:"
+          head -c 500 /tmp/arcgis-test.json || true
