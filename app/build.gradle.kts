@@ -23,6 +23,12 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        val mapTilerApiKey = providers.gradleProperty("MAPTILER_API_KEY").orNull.orEmpty()
+        val mapProvider = providers.gradleProperty("MAP_PROVIDER").orNull ?: "openfreemap"
+
+        buildConfigField("String", "MAPTILER_API_KEY", "\"$mapTilerApiKey\"")
+        buildConfigField("String", "MAP_PROVIDER", "\"$mapProvider\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -41,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

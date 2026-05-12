@@ -11,7 +11,7 @@ class CyclewaysRemoteDataSourceImpl @Inject constructor(
 
     private companion object {
         const val METADATA_URL =
-            "https://cicloguia.web.app/public-data/cycleways/metadata.json"
+            "https://ciclo-guia.web.app/public-data/cycleways/metadata.json"
     }
 
     override suspend fun getMetadata(): CyclewaysDatasetMetadata {

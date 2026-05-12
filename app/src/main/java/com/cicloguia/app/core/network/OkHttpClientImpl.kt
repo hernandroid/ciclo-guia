@@ -13,26 +13,56 @@ class OkHttpClientImpl @Inject constructor(
     private val client: OkHttpClient
 ) : HttpClient {
 
-    override suspend fun get(url: String): String = suspendCancellableCoroutine { cont ->
-        val request = Request.Builder().url(url).build()
-        val call = client.newCall(request)
+    override suspend fun get(url: String): String =
+        suspendCancellableCoroutine { cont ->
 
-        cont.invokeOnCancellation { call.cancel() }
+            val request = Request.Builder()
+                .url(url)
+                .build()
 
-        call.enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                cont.resumeWith(Result.failure(e))
+            val call = client.newCall(request)
+
+            cont.invokeOnCancellation {
+                call.cancel()
             }
 
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (!it.isSuccessful) {
-                        cont.resumeWith(Result.failure(IOException("HTTP ${it.code}")))
-                    } else {
-                        cont.resumeWith(Result.success(it.body.string()))
+            call.enqueue(object : Callback {
+
+                override fun onFailure(
+                    call: Call,
+                    e: IOException
+                ) {
+                    cont.resumeWith(
+                        Result.failure(e)
+                    )
+                }
+
+                override fun onResponse(
+                    call: Call,
+                    response: Response
+                ) {
+                    response.use {
+
+                        if (!it.isSuccessful) {
+
+                            cont.resumeWith(
+                                Result.failure(
+                                    IOException(
+                                        "HTTP ${it.code} for URL: $url"
+                                    )
+                                )
+                            )
+
+                            return
+                        }
+
+                        cont.resumeWith(
+                            Result.success(
+                                it.body.string()
+                            )
+                        )
                     }
                 }
-            }
-        })
-    }
+            })
+        }
 }
