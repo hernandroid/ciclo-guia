@@ -3,9 +3,11 @@ package com.cicloguia.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.cicloguia.app.core.map.MapStyleProvider
-import com.cicloguia.app.feature.map.MapScreen
-import com.cicloguia.app.ui.theme.CicloGuiaTheme
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.cicloguia.app.feature.map.data.style.MapStyleProvider
+import com.cicloguia.app.feature.map.presentation.MapScreen
+import com.cicloguia.app.core.designsystem.theme.CicloGuiaTheme
+import com.cicloguia.app.core.navigation.CicloGuiaNavGraph
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -16,13 +18,13 @@ class MainActivity : ComponentActivity() {
     lateinit var mapStyleProvider: MapStyleProvider
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
 
         setContent {
             CicloGuiaTheme {
-                MapScreen(
-                    mapStyleProvider = mapStyleProvider
-                )
+                CicloGuiaNavGraph()
             }
         }
     }

@@ -21,7 +21,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.1.0-beta"
 
         val mapTilerApiKey = providers.gradleProperty("MAPTILER_API_KEY").orNull.orEmpty()
         val mapProvider = providers.gradleProperty("MAP_PROVIDER").orNull ?: "openfreemap"
@@ -59,6 +59,7 @@ kotlin {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -67,6 +68,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.navigation.compose)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
@@ -80,6 +82,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.gson)
+    implementation(libs.accompanist.permissions)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
