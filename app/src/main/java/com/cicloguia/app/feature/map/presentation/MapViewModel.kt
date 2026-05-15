@@ -44,6 +44,38 @@ class MapViewModel @Inject constructor(
             MapUiEvent.RetryClicked -> {
                 loadCycleways()
             }
+
+            MapUiEvent.CenterOnUserLocationClicked -> {
+                val currentState = _uiState.value
+
+                if (currentState is MapUiState.Content) {
+                    _uiState.value = currentState.copy(
+                        centerOnUserLocationRequest = currentState.centerOnUserLocationRequest + 1
+                    )
+                }
+            }
+
+            is MapUiEvent.CyclewayClicked -> {
+                val currentState = _uiState.value
+
+                if (currentState is MapUiState.Content) {
+                    _uiState.value = currentState.copy(
+                        selectedCyclewayName = event.cycleway.name,
+                        selectedCycleway = event.cycleway
+                    )
+                }
+            }
+
+            MapUiEvent.DismissSelectedCycleway -> {
+                val currentState = _uiState.value
+
+                if (currentState is MapUiState.Content) {
+                    _uiState.value = currentState.copy(
+                        selectedCyclewayName = "Ciclovías de Lima",
+                        selectedCycleway = null
+                    )
+                }
+            }
         }
     }
 

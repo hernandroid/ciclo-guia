@@ -1,5 +1,7 @@
 package com.cicloguia.app.feature.map.presentation
 
+import com.cicloguia.app.feature.map.presentation.model.SelectedCyclewayUi
+
 sealed interface MapUiState {
 
     data object Loading : MapUiState
@@ -8,7 +10,9 @@ sealed interface MapUiState {
         val geoJson: String,
         val mapStyleUrl: String,
         val selectedCyclewayName: String = "Ciclovías de Lima",
-        val isSyncing: Boolean = false
+        val selectedCycleway: SelectedCyclewayUi? = null,
+        val isSyncing: Boolean = false,
+        val centerOnUserLocationRequest: Int = 0
     ) : MapUiState
 
     data class Error(

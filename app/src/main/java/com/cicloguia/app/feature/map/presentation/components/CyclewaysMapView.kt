@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -13,6 +14,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.cicloguia.app.feature.map.presentation.model.SelectedCyclewayUi
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -24,15 +26,25 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory.lineCap
 import org.maplibre.android.style.layers.PropertyFactory.lineColor
+import org.maplibre.android.style.layers.PropertyFactory.lineJoin
+import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
 import org.maplibre.android.style.layers.PropertyFactory.lineWidth
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+
+private const val CYCLEWAYS_SOURCE_ID = "cicloguia-cycleways-source"
+private const val CYCLEWAYS_LAYER_ID = "cicloguia-cycleways-layer"
 
 @Composable
 fun CyclewaysMapView(
     styleUrl: String,
     geoJson: String,
     hasLocationPermission: Boolean,
+    centerOnUserLocationRequest: Int,
+    onCyclewayClick: (SelectedCyclewayUi) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mapView = rememberMapViewWithLifecycle()
@@ -47,7 +59,8 @@ fun CyclewaysMapView(
                         map = map,
                         styleUrl = styleUrl,
                         geoJson = geoJson,
-                        hasLocationPermission = hasLocationPermission
+                        hasLocationPermission = hasLocationPermission,
+                        onCyclewayClick = onCyclewayClick
                     )
                 }
             }
@@ -58,6 +71,10 @@ fun CyclewaysMapView(
                     map = map,
                     geoJson = geoJson
                 )
+
+                if (hasLocationPermission && centerOnUserLocationRequest > 0) {
+                    centerCameraOnUserLocation(map)
+                }
             }
         }
     )
@@ -101,7 +118,8 @@ private fun setupMap(
     map: MapLibreMap,
     styleUrl: String,
     geoJson: String,
-    hasLocationPermission: Boolean
+    hasLocationPermission: Boolean,
+    onCyclewayClick: (SelectedCyclewayUi) -> Unit
 ) {
     map.cameraPosition = CameraPosition.Builder()
         .target(LatLng(-12.0945, -77.0445))
@@ -114,6 +132,11 @@ private fun setupMap(
         addOrUpdateCyclewaysLayer(
             style = style,
             geoJson = geoJson
+        )
+
+        setupCyclewayClickListener(
+            map = map,
+            onCyclewayClick = onCyclewayClick
         )
 
         if (hasLocationPermission) {
@@ -142,29 +165,54 @@ private fun addOrUpdateCyclewaysLayer(
     style: Style,
     geoJson: String
 ) {
-    val sourceId = "cicloguia-cycleways-source"
-    val layerId = "cicloguia-cycleways-layer"
-
-    val existingSource = style.getSource(sourceId) as? GeoJsonSource
+    val existingSource = style.getSource(CYCLEWAYS_SOURCE_ID) as? GeoJsonSource
 
     if (existingSource != null) {
         existingSource.setGeoJson(geoJson)
     } else {
         style.addSource(
             GeoJsonSource(
-                sourceId,
+                CYCLEWAYS_SOURCE_ID,
                 geoJson
             )
         )
     }
 
-    if (style.getLayer(layerId) == null) {
+    if (style.getLayer(CYCLEWAYS_LAYER_ID) == null) {
         style.addLayer(
-            LineLayer(layerId, sourceId).withProperties(
-                lineColor("#00E676"),
-                lineWidth(5f)
+            LineLayer(CYCLEWAYS_LAYER_ID, CYCLEWAYS_SOURCE_ID).withProperties(
+                lineColor("#00B37A"),
+                lineWidth(2.5f),
+                lineOpacity(0.95f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
             )
         )
+    }
+}
+
+private fun setupCyclewayClickListener(
+    map: MapLibreMap,
+    onCyclewayClick: (SelectedCyclewayUi) -> Unit
+) {
+    map.addOnMapClickListener { latLng ->
+        val screenPoint = map.projection.toScreenLocation(latLng)
+
+        val features = map.queryRenderedFeatures(
+            screenPoint,
+            CYCLEWAYS_LAYER_ID
+        )
+
+        val selectedFeature = features.firstOrNull()
+
+        if (selectedFeature != null) {
+            onCyclewayClick(
+                selectedFeature.toSelectedCyclewayUi()
+            )
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -199,4 +247,110 @@ private fun enableUserLocationAndCenterOnce(
     }
 
     locationComponent.cameraMode = CameraMode.NONE
+}
+
+@SuppressLint("MissingPermission")
+private fun centerCameraOnUserLocation(
+    map: MapLibreMap
+) {
+    val location = map.locationComponent.lastKnownLocation ?: return
+
+    map.animateCamera(
+        CameraUpdateFactory.newLatLngZoom(
+            LatLng(location.latitude, location.longitude),
+            15.0
+        )
+    )
+}
+
+private fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
+    return SelectedCyclewayUi(
+        name = propertyOrFallback(
+            "NOMBRE",
+            "NOMBRE_VIA",
+            "name",
+            "CODIGO",
+            fallback = "Ciclovía seleccionada"
+        ),
+        district = propertyOrFallback(
+            "DISTRITO",
+            "distrito",
+            fallback = "Distrito no especificado"
+        ),
+        lengthKm = formatLengthKm(
+            propertyOrFallback(
+                "LONG_KM",
+                "LONGITUD",
+                "longitud",
+                fallback = "No disponible"
+            )
+        ),
+        segregationType = formatText(
+            propertyOrFallback(
+                "TIPO_SEG",
+                "SEGREGACION",
+                "tipo_seg",
+                fallback = "No especificado"
+            )
+        ),
+        status = formatText(
+            propertyOrFallback(
+                "ESTADO",
+                "estado",
+                fallback = "No especificado"
+            )
+        ),
+        direction = formatText(
+            propertyOrFallback(
+                "SENTIDO",
+                "sentido",
+                fallback = "No especificado"
+            )
+        ),
+        lighting = formatText(
+            propertyOrFallback(
+                "ILUMINACION",
+                "iluminacion",
+                fallback = "No especificado"
+            )
+        ),
+        surveillance = formatText(
+            propertyOrFallback(
+                "VIGILANCIA",
+                "vigilancia",
+                fallback = "No especificado"
+            )
+        )
+    )
+}
+
+private fun Feature.propertyOrFallback(
+    vararg keys: String,
+    fallback: String
+): String {
+    return keys.firstNotNullOfOrNull { key ->
+        if (hasProperty(key) && getProperty(key) != null) {
+            getProperty(key).asString.takeIf { it.isNotBlank() }
+        } else {
+            null
+        }
+    } ?: fallback
+}
+
+private fun formatLengthKm(value: String): String {
+    val numericValue = value.toDoubleOrNull()
+
+    return if (numericValue != null) {
+        String.format("%.2f km", numericValue)
+    } else {
+        "No disponible"
+    }
+}
+
+private fun formatText(value: String): String {
+    val normalized = value.lowercase()
+
+    return normalized.replaceFirstChar { char ->
+        char.uppercase()
+    }
 }
