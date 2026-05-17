@@ -272,10 +272,12 @@ private fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
             "CODIGO",
             fallback = "Ciclovía seleccionada"
         ),
-        district = propertyOrFallback(
-            "DISTRITO",
-            "distrito",
-            fallback = "Distrito no especificado"
+        district = formatTitleCase(
+            propertyOrFallback(
+                "DISTRITO",
+                "distrito",
+                fallback = "Distrito no especificado"
+            )
         ),
         lengthKm = formatLengthKm(
             propertyOrFallback(
@@ -285,10 +287,11 @@ private fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
                 fallback = "No disponible"
             )
         ),
-        segregationType = formatText(
+        segregationType = formatSegregationType(
             propertyOrFallback(
                 "TIPO_SEG",
                 "SEGREGACION",
+                "SEGREGAC",
                 "tipo_seg",
                 fallback = "No especificado"
             )
@@ -304,12 +307,14 @@ private fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
             propertyOrFallback(
                 "SENTIDO",
                 "sentido",
+                "DIRECC",
                 fallback = "No especificado"
             )
         ),
         lighting = formatText(
             propertyOrFallback(
                 "ILUMINACION",
+                "ILUMINAC",
                 "iluminacion",
                 fallback = "No especificado"
             )
@@ -317,6 +322,7 @@ private fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
         surveillance = formatText(
             propertyOrFallback(
                 "VIGILANCIA",
+                "VIGILANC",
                 "vigilancia",
                 fallback = "No especificado"
             )
@@ -337,10 +343,11 @@ private fun Feature.propertyOrFallback(
     } ?: fallback
 }
 
+@SuppressLint("DefaultLocale")
 private fun formatLengthKm(value: String): String {
     val numericValue = value.toDoubleOrNull()
 
-    return if (numericValue != null) {
+    return if (numericValue != null && numericValue > 0.0) {
         String.format("%.2f km", numericValue)
     } else {
         "No disponible"
@@ -352,5 +359,41 @@ private fun formatText(value: String): String {
 
     return normalized.replaceFirstChar { char ->
         char.uppercase()
+    }
+}
+
+private fun formatTitleCase(value: String): String {
+    val lowercaseConnectors = setOf(
+        "de", "del", "la", "las", "los", "y", "e", "en", "a"
+    )
+
+    return value
+        .lowercase()
+        .split(" ")
+        .filter { it.isNotBlank() }
+        .mapIndexed { index, word ->
+            if (index != 0 && word in lowercaseConnectors) {
+                word
+            } else {
+                word.replaceFirstChar { char ->
+                    char.uppercase()
+                }
+            }
+        }
+        .joinToString(" ")
+}
+
+private fun formatSegregationType(value: String): String {
+    return when (value.trim().lowercase()) {
+        "bolardo, tachon",
+        "bolardo, tachón" -> "Bolardos y tachones"
+
+        "pintura" -> "Pintura"
+        "sardinel" -> "Sardinel"
+        "tachon", "tachón" -> "Tachones"
+        "bolardo" -> "Bolardos"
+        "no especificado" -> "No especificado"
+
+        else -> formatText(value)
     }
 }

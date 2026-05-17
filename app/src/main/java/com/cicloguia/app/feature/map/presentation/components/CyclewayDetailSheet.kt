@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cicloguia.app.core.designsystem.theme.LocalSpacing
@@ -79,7 +80,7 @@ private fun SheetHandle() {
             .width(48.dp)
             .height(5.dp)
             .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f))
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
     )
 }
 
@@ -97,112 +98,24 @@ private fun CyclewayDetailContent(
             .padding(horizontal = spacing.lg)
             .padding(bottom = spacing.xl)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.DirectionsBike,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = spacing.md)
-            ) {
-                Text(
-                    text = cycleway.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Text(
-                    text = cycleway.district,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            IconButton(
-                onClick = onDismiss
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = "Cerrar"
-                )
-            }
-        }
-
-        androidx.compose.foundation.layout.Spacer(
-            modifier = Modifier.size(spacing.lg)
+        Header(
+            cycleway = cycleway,
+            onDismiss = onDismiss
         )
 
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.elevatedCardElevation(
-                defaultElevation = 1.dp
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(vertical = spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                DetailRow(
-                    icon = Icons.Outlined.Straighten,
-                    title = "Longitud",
-                    value = cycleway.lengthKm
-                )
+        Spacer(modifier = Modifier.height(spacing.lg))
 
-                DetailRow(
-                    icon = Icons.Outlined.Route,
-                    title = "Tipo de segregación",
-                    value = cycleway.segregationType
-                )
-
-                DetailRow(
-                    icon = Icons.Outlined.Construction,
-                    title = "Estado",
-                    value = cycleway.status
-                )
-
-                DetailRow(
-                    icon = Icons.Outlined.LightMode,
-                    title = "Iluminación",
-                    value = cycleway.lighting
-                )
-
-                DetailRow(
-                    icon = Icons.Outlined.Security,
-                    title = "Vigilancia",
-                    value = cycleway.surveillance
-                )
-
-                DetailRow(
-                    icon = Icons.Outlined.SwapHoriz,
-                    title = "Sentido",
-                    value = cycleway.direction
-                )
-            }
-        }
-
-        androidx.compose.foundation.layout.Spacer(
-            modifier = Modifier.size(spacing.lg)
+        SummaryIndicators(
+            cycleway = cycleway
         )
+
+        Spacer(modifier = Modifier.height(spacing.lg))
+
+        DetailCard(
+            cycleway = cycleway
+        )
+
+        Spacer(modifier = Modifier.height(spacing.lg))
 
         Button(
             onClick = onViewRouteClick,
@@ -218,7 +131,214 @@ private fun CyclewayDetailContent(
 
             Spacer(modifier = Modifier.width(spacing.sm))
 
-            Text(text = "Iniciar ruta")
+            Text(
+                text = "Iniciar ruta",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun Header(
+    cycleway: SelectedCyclewayUi,
+    onDismiss: () -> Unit
+) {
+    val spacing = LocalSpacing.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(44.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.DirectionsBike,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(10.dp)
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = spacing.md)
+        ) {
+            Text(
+                text = cycleway.name,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = cycleway.district,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        IconButton(onClick = onDismiss) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "Cerrar",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryIndicators(
+    cycleway: SelectedCyclewayUi
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        SummaryChip(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Outlined.Security,
+            title = "Vigilancia",
+            value = cycleway.surveillance,
+            color = qualityColor(cycleway.surveillance)
+        )
+
+        SummaryChip(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Outlined.LightMode,
+            title = "Iluminación",
+            value = cycleway.lighting,
+            color = qualityColor(cycleway.lighting)
+        )
+
+        SummaryChip(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Outlined.SwapHoriz,
+            title = "Sentido",
+            value = cycleway.direction,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun SummaryChip(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 1.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(20.dp)
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatusDot(color = color)
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Text(
+                        text = formatChipValue(value),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailCard(
+    cycleway: SelectedCyclewayUi
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 1.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            DetailRow(
+                icon = Icons.Outlined.Straighten,
+                title = "Longitud",
+                value = cycleway.lengthKm
+            )
+
+            DetailDivider()
+
+            DetailRow(
+                icon = Icons.Outlined.Route,
+                title = "Tipo de segregación",
+                value = cycleway.segregationType
+            )
+
+            DetailDivider()
+
+            DetailRow(
+                icon = Icons.Outlined.Construction,
+                title = "Estado",
+                value = cycleway.status,
+                valueContent = {
+                    StatusPill(
+                        text = cycleway.status,
+                        color = statusColor(cycleway.status)
+                    )
+                }
+            )
         }
     }
 }
@@ -228,37 +348,129 @@ private fun DetailRow(
     icon: ImageVector,
     title: String,
     value: String,
-    iconTint: Color = MaterialTheme.colorScheme.primary
+    valueContent: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(24.dp)
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp)
         )
 
-        Spacer(modifier = Modifier.width(20.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+        Text(
+            modifier = Modifier.weight(1f),
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
 
-            Spacer(modifier = Modifier.height(2.dp))
-
+        if (valueContent != null) {
+            valueContent()
+        } else {
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+@Composable
+private fun DetailDivider() {
+    Spacer(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 56.dp, end = 18.dp)
+            .height(1.dp)
+            .background(
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            )
+    )
+}
+
+@Composable
+private fun StatusPill(
+    text: String,
+    color: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = color.copy(alpha = 0.12f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StatusDot(color = color)
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                color = color,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusDot(
+    color: Color
+) {
+    Spacer(
+        modifier = Modifier
+            .size(8.dp)
+            .clip(CircleShape)
+            .background(color)
+    )
+}
+
+@Composable
+private fun qualityColor(value: String): Color {
+    return when (value.lowercase()) {
+        "buena", "alto", "alta", "existente", "bidireccional", "unidireccional" ->
+            MaterialTheme.colorScheme.primary
+
+        "regular", "media", "medio" ->
+            Color(0xFFFFA000)
+
+        "mala", "baja", "necesaria" ->
+            MaterialTheme.colorScheme.error
+
+        else ->
+            MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+@Composable
+private fun statusColor(value: String): Color {
+    return when (value.lowercase()) {
+        "existente" -> MaterialTheme.colorScheme.primary
+        "en proyecto" -> Color(0xFFFFA000)
+        "en ejecución", "en ejecucion" -> Color(0xFF1976D2)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+private fun formatChipValue(value: String): String {
+    return when (value.lowercase()) {
+        "no especificado" -> "N/D"
+        "unidireccional" -> "Una vía"
+        "bidireccional" -> "Doble vía"
+        else -> value
     }
 }

@@ -21,7 +21,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0-beta"
+        versionName = "0.1.2-beta"
 
         val mapTilerApiKey = providers.gradleProperty("MAPTILER_API_KEY").orNull.orEmpty()
         val mapProvider = providers.gradleProperty("MAP_PROVIDER").orNull ?: "openfreemap"
