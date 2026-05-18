@@ -1,8 +1,11 @@
 package com.cicloguia.app.feature.map.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,20 +34,28 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cicloguia.app.core.designsystem.theme.LocalSpacing
 import com.cicloguia.app.feature.map.presentation.model.SelectedCyclewayUi
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -227,7 +239,7 @@ private fun SummaryIndicators(
             icon = Icons.Outlined.SwapHoriz,
             title = "Sentido",
             value = cycleway.direction,
-            color = MaterialTheme.colorScheme.primary
+            color = qualityColor(cycleway.direction)
         )
     }
 }
@@ -253,14 +265,19 @@ private fun SummaryChip(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 10.dp),
+                .padding(
+                    start = 10.dp,
+                    end = 6.dp,
+                    top = 10.dp,
+                    bottom = 10.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = color,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
 
             Spacer(modifier = Modifier.width(6.dp))
@@ -322,8 +339,9 @@ private fun DetailCard(
 
             DetailRow(
                 icon = Icons.Outlined.Route,
-                title = "Tipo de segregación",
-                value = cycleway.segregationType
+                title = "Separación",
+                value = cycleway.segregationType,
+                showTooltipOnValue = true
             )
 
             DetailDivider()
@@ -348,7 +366,8 @@ private fun DetailRow(
     icon: ImageVector,
     title: String,
     value: String,
-    valueContent: (@Composable () -> Unit)? = null
+    valueContent: (@Composable () -> Unit)? = null,
+    showTooltipOnValue: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -366,24 +385,140 @@ private fun DetailRow(
         Spacer(modifier = Modifier.width(16.dp))
 
         Text(
-            modifier = Modifier.weight(1f),
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
         )
 
+        Spacer(modifier = Modifier.weight(1f))
+
         if (valueContent != null) {
-            valueContent()
+            Box(
+                modifier = Modifier.widthIn(min = 120.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                valueContent()
+            }
         } else {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (showTooltipOnValue) {
+                TooltipTextValue(
+                    modifier = Modifier.widthIn(max = 190.dp),
+                    text = value
+                )
+            } else {
+                Text(
+                    modifier = Modifier.widthIn(max = 190.dp),
+                    text = value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End
+                )
+            }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TooltipTextValue(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    val tooltipState = rememberTooltipState()
+    val scope = rememberCoroutineScope()
+
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+            positioning = TooltipAnchorPosition.Above
+        ),
+        tooltip = {
+            PlainTooltip {
+                Text(text = text)
+            }
+        },
+        state = tooltipState
+    ) {
+        Text(
+            modifier = modifier.clickable {
+                scope.launch {
+                    tooltipState.show()
+                }
+            },
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun MultiValueDetailRow(
+    icon: ImageVector,
+    title: String,
+    values: List<String>,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp)
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            values.forEach { value ->
+                ValueChip(text = value)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ValueChip(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
+        )
     }
 }
 

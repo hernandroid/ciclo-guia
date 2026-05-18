@@ -37,6 +37,8 @@ import org.maplibre.geojson.Feature
 
 private const val CYCLEWAYS_SOURCE_ID = "cicloguia-cycleways-source"
 private const val CYCLEWAYS_LAYER_ID = "cicloguia-cycleways-layer"
+private const val UNKNOWN_VALUE = "No especificado"
+private const val CYCLEWAY_TAP_TOLERANCE_PX = 32.0
 
 @Composable
 fun CyclewaysMapView(
@@ -49,35 +51,30 @@ fun CyclewaysMapView(
 ) {
     val mapView = rememberMapViewWithLifecycle()
 
-    AndroidView(
-        modifier = modifier.fillMaxSize(),
-        factory = {
-            mapView.apply {
-                getMapAsync { map ->
-                    setupMap(
-                        context = context,
-                        map = map,
-                        styleUrl = styleUrl,
-                        geoJson = geoJson,
-                        hasLocationPermission = hasLocationPermission,
-                        onCyclewayClick = onCyclewayClick
-                    )
-                }
-            }
-        },
-        update = {
-            it.getMapAsync { map ->
-                updateCyclewaysLayer(
+    AndroidView(modifier = modifier.fillMaxSize(), factory = {
+        mapView.apply {
+            getMapAsync { map ->
+                setupMap(
+                    context = context,
                     map = map,
-                    geoJson = geoJson
+                    styleUrl = styleUrl,
+                    geoJson = geoJson,
+                    hasLocationPermission = hasLocationPermission,
+                    onCyclewayClick = onCyclewayClick
                 )
-
-                if (hasLocationPermission && centerOnUserLocationRequest > 0) {
-                    centerCameraOnUserLocation(map)
-                }
             }
         }
-    )
+    }, update = {
+        it.getMapAsync { map ->
+            updateCyclewaysLayer(
+                map = map, geoJson = geoJson
+            )
+
+            if (hasLocationPermission && centerOnUserLocationRequest > 0) {
+                centerCameraOnUserLocation(map)
+            }
+        }
+    })
 }
 
 @Composable
@@ -121,49 +118,40 @@ private fun setupMap(
     hasLocationPermission: Boolean,
     onCyclewayClick: (SelectedCyclewayUi) -> Unit
 ) {
-    map.cameraPosition = CameraPosition.Builder()
-        .target(LatLng(-12.0945, -77.0445))
-        .zoom(12.0)
-        .build()
+    map.cameraPosition =
+        CameraPosition.Builder().target(LatLng(-12.0945, -77.0445)).zoom(12.0).build()
 
     map.setStyle(
         Style.Builder().fromUri(styleUrl)
     ) { style ->
         addOrUpdateCyclewaysLayer(
-            style = style,
-            geoJson = geoJson
+            style = style, geoJson = geoJson
         )
 
         setupCyclewayClickListener(
-            map = map,
-            onCyclewayClick = onCyclewayClick
+            map = map, onCyclewayClick = onCyclewayClick
         )
 
         if (hasLocationPermission) {
             enableUserLocationAndCenterOnce(
-                context = context,
-                map = map,
-                style = style
+                context = context, map = map, style = style
             )
         }
     }
 }
 
 private fun updateCyclewaysLayer(
-    map: MapLibreMap,
-    geoJson: String
+    map: MapLibreMap, geoJson: String
 ) {
     map.style?.let { style ->
         addOrUpdateCyclewaysLayer(
-            style = style,
-            geoJson = geoJson
+            style = style, geoJson = geoJson
         )
     }
 }
 
 private fun addOrUpdateCyclewaysLayer(
-    style: Style,
-    geoJson: String
+    style: Style, geoJson: String
 ) {
     val existingSource = style.getSource(CYCLEWAYS_SOURCE_ID) as? GeoJsonSource
 
@@ -172,8 +160,7 @@ private fun addOrUpdateCyclewaysLayer(
     } else {
         style.addSource(
             GeoJsonSource(
-                CYCLEWAYS_SOURCE_ID,
-                geoJson
+                CYCLEWAYS_SOURCE_ID, geoJson
             )
         )
     }
@@ -198,17 +185,22 @@ private fun setupCyclewayClickListener(
     map.addOnMapClickListener { latLng ->
         val screenPoint = map.projection.toScreenLocation(latLng)
 
-        val features = map.queryRenderedFeatures(
-            screenPoint,
-            CYCLEWAYS_LAYER_ID
+        val tapBox = android.graphics.RectF(
+            (screenPoint.x - CYCLEWAY_TAP_TOLERANCE_PX).toFloat(),
+            (screenPoint.y - CYCLEWAY_TAP_TOLERANCE_PX).toFloat(),
+            (screenPoint.x + CYCLEWAY_TAP_TOLERANCE_PX).toFloat(),
+            (screenPoint.y + CYCLEWAY_TAP_TOLERANCE_PX).toFloat()
         )
+
+        val features = map.queryRenderedFeatures(
+            tapBox,
+            CYCLEWAYS_LAYER_ID
+        ).toList()
 
         val selectedFeature = features.firstOrNull()
 
         if (selectedFeature != null) {
-            onCyclewayClick(
-                selectedFeature.toSelectedCyclewayUi()
-            )
+            onCyclewayClick(selectedFeature.toSelectedCyclewayUi())
             true
         } else {
             false
@@ -218,20 +210,15 @@ private fun setupCyclewayClickListener(
 
 @SuppressLint("MissingPermission")
 private fun enableUserLocationAndCenterOnce(
-    context: Context,
-    map: MapLibreMap,
-    style: Style
+    context: Context, map: MapLibreMap, style: Style
 ) {
     val locationComponent = map.locationComponent
 
-    val options = LocationComponentOptions.builder(context)
-        .pulseEnabled(true)
-        .build()
+    val options = LocationComponentOptions.builder(context).pulseEnabled(true).build()
 
-    val activationOptions = LocationComponentActivationOptions
-        .builder(context, style)
-        .locationComponentOptions(options)
-        .build()
+    val activationOptions =
+        LocationComponentActivationOptions.builder(context, style).locationComponentOptions(options)
+            .build()
 
     locationComponent.activateLocationComponent(activationOptions)
     locationComponent.isLocationComponentEnabled = true
@@ -240,8 +227,7 @@ private fun enableUserLocationAndCenterOnce(
     locationComponent.lastKnownLocation?.let { location ->
         map.animateCamera(
             CameraUpdateFactory.newLatLngZoom(
-                LatLng(location.latitude, location.longitude),
-                15.0
+                LatLng(location.latitude, location.longitude), 15.0
             )
         )
     }
@@ -257,82 +243,103 @@ private fun centerCameraOnUserLocation(
 
     map.animateCamera(
         CameraUpdateFactory.newLatLngZoom(
-            LatLng(location.latitude, location.longitude),
-            15.0
+            LatLng(location.latitude, location.longitude), 15.0
         )
     )
 }
 
 private fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
     return SelectedCyclewayUi(
-        name = propertyOrFallback(
-            "NOMBRE",
-            "NOMBRE_VIA",
-            "name",
-            "CODIGO",
-            fallback = "Ciclovía seleccionada"
+        objectId = propertyOrFallback(
+            "OBJECTID", fallback = UNKNOWN_VALUE
+        ),
+        code = propertyOrFallback(
+            "CODIGO", fallback = UNKNOWN_VALUE
+        ),
+        status = formatText(
+            propertyOrFallback(
+                "ESTADO", fallback = UNKNOWN_VALUE
+            )
         ),
         district = formatTitleCase(
             propertyOrFallback(
-                "DISTRITO",
-                "distrito",
-                fallback = "Distrito no especificado"
+                "DISTRITO", fallback = UNKNOWN_VALUE
+            )
+        ),
+        name = formatTitleCase(
+            propertyOrFallback(
+                "NOMBRE", fallback = "Ciclovía seleccionada"
+            )
+        ),
+        section = formatTitleCase(
+            propertyOrFallback(
+                "TRAMO", fallback = UNKNOWN_VALUE
+            )
+        ),
+        roadType = formatText(
+            propertyOrFallback(
+                "SECC_VIAL", fallback = UNKNOWN_VALUE
+            )
+        ),
+        cyclewayPosition = formatText(
+            propertyOrFallback(
+                "UBIC_VIAL", fallback = UNKNOWN_VALUE
             )
         ),
         lengthKm = formatLengthKm(
             propertyOrFallback(
-                "LONG_KM",
-                "LONGITUD",
-                "longitud",
-                fallback = "No disponible"
-            )
-        ),
-        segregationType = formatSegregationType(
-            propertyOrFallback(
-                "TIPO_SEG",
-                "SEGREGACION",
-                "SEGREGAC",
-                "tipo_seg",
-                fallback = "No especificado"
-            )
-        ),
-        status = formatText(
-            propertyOrFallback(
-                "ESTADO",
-                "estado",
-                fallback = "No especificado"
+                "LONGITUD", fallback = UNKNOWN_VALUE
             )
         ),
         direction = formatText(
             propertyOrFallback(
-                "SENTIDO",
-                "sentido",
-                "DIRECC",
-                fallback = "No especificado"
+                "DIRECC", fallback = UNKNOWN_VALUE
+            )
+        ),
+        segregationType = formatSegregationType(
+            propertyOrFallback(
+                "SEGREGAC", fallback = UNKNOWN_VALUE
             )
         ),
         lighting = formatText(
             propertyOrFallback(
-                "ILUMINACION",
-                "ILUMINAC",
-                "iluminacion",
-                fallback = "No especificado"
+                "ILUMINAC", fallback = UNKNOWN_VALUE
             )
         ),
         surveillance = formatText(
             propertyOrFallback(
-                "VIGILANCIA",
-                "VIGILANC",
-                "vigilancia",
-                fallback = "No especificado"
+                "VIGILANCIA", fallback = UNKNOWN_VALUE
             )
+        ),
+        projectName = formatTitleCase(
+            propertyOrFallback(
+                "NOM_PROY", fallback = UNKNOWN_VALUE
+            )
+        ),
+        quantity = propertyOrFallback(
+            "CANTIDAD", fallback = UNKNOWN_VALUE
+        ),
+        implementationType = formatText(
+            propertyOrFallback(
+                "EMERGENTE", fallback = UNKNOWN_VALUE
+            )
+        ),
+        year = propertyOrFallback(
+            "AÑO", fallback = UNKNOWN_VALUE
+        ),
+        authorityType = formatText(
+            propertyOrFallback(
+                "ENTIDAD", fallback = UNKNOWN_VALUE
+            )
+        ),
+        creationDate = propertyOrFallback(
+            "CREACION", fallback = UNKNOWN_VALUE
         )
     )
 }
 
 private fun Feature.propertyOrFallback(
-    vararg keys: String,
-    fallback: String
+    vararg keys: String, fallback: String
 ): String {
     return keys.firstNotNullOfOrNull { key ->
         if (hasProperty(key) && getProperty(key) != null) {
@@ -367,33 +374,51 @@ private fun formatTitleCase(value: String): String {
         "de", "del", "la", "las", "los", "y", "e", "en", "a"
     )
 
-    return value
-        .lowercase()
-        .split(" ")
-        .filter { it.isNotBlank() }
-        .mapIndexed { index, word ->
-            if (index != 0 && word in lowercaseConnectors) {
-                word
-            } else {
-                word.replaceFirstChar { char ->
-                    char.uppercase()
-                }
+    return value.lowercase().split(" ").filter { it.isNotBlank() }.mapIndexed { index, word ->
+        if (index != 0 && word in lowercaseConnectors) {
+            word
+        } else {
+            word.replaceFirstChar { char ->
+                char.uppercase()
             }
         }
-        .joinToString(" ")
+    }.joinToString(" ")
 }
 
 private fun formatSegregationType(value: String): String {
-    return when (value.trim().lowercase()) {
-        "bolardo, tachon",
-        "bolardo, tachón" -> "Bolardos y tachones"
+    if (
+        value.isBlank() ||
+        value.equals(UNKNOWN_VALUE, ignoreCase = true)
+    ) {
+        return UNKNOWN_VALUE
+    }
 
-        "pintura" -> "Pintura"
-        "sardinel" -> "Sardinel"
-        "tachon", "tachón" -> "Tachones"
-        "bolardo" -> "Bolardos"
-        "no especificado" -> "No especificado"
+    val values = value
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .map { formatText(it).lowercase() }
+        .distinct()
 
-        else -> formatText(value)
+    return when (values.size) {
+        0 -> UNKNOWN_VALUE
+
+        1 -> {
+            values.first()
+                .replaceFirstChar { it.uppercase() }
+        }
+
+        2 -> {
+            "${values[0].replaceFirstChar { it.uppercase() }} y ${values[1]}"
+        }
+
+        else -> {
+            val firstValues = values.dropLast(1)
+            val lastValue = values.last()
+
+            firstValues.joinToString(", ")
+                .replaceFirstChar { it.uppercase() } +
+                    " y $lastValue"
+        }
     }
 }

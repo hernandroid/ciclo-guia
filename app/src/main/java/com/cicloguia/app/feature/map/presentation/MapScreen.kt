@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,38 +34,20 @@ fun MapScreen(
     Scaffold(
         floatingActionButton = {
             if (uiState is MapUiState.Content) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                SmallFloatingActionButton(
+                    modifier = Modifier.padding(16.dp),
+                    onClick = {
+                        onEvent(MapUiEvent.CenterOnUserLocationClicked)
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 4.dp
+                    )
                 ) {
-                    SmallFloatingActionButton(
-                        onClick = {
-                            onEvent(MapUiEvent.CenterOnUserLocationClicked)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MyLocation,
-                            contentDescription = "Centrar ubicación"
-                        )
-                    }
-
-                    ExtendedFloatingActionButton(
-                        onClick = {
-                            onEvent(MapUiEvent.ReportClicked)
-                        }
-                    ) {
-                        Text(text = "Reportar")
-                    }
-                }
-            }
-        },
-        bottomBar = {
-            if (uiState is MapUiState.Content) {
-                BottomAppBar {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        text = uiState.selectedCyclewayName,
-                        style = MaterialTheme.typography.titleMedium
+                    Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = "Centrar ubicación"
                     )
                 }
             }
