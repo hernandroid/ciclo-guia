@@ -46,6 +46,8 @@ fun CyclewaysMapView(
     geoJson: String,
     hasLocationPermission: Boolean,
     centerOnUserLocationRequest: Int,
+    onCameraCenteredOnUserLocation: () -> Unit,
+    onMapMovedByUser: () -> Unit,
     onCyclewayClick: (SelectedCyclewayUi) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -60,7 +62,9 @@ fun CyclewaysMapView(
                     styleUrl = styleUrl,
                     geoJson = geoJson,
                     hasLocationPermission = hasLocationPermission,
-                    onCyclewayClick = onCyclewayClick
+                    onCameraCenteredOnUserLocation = onCameraCenteredOnUserLocation,
+                    onCyclewayClick = onCyclewayClick,
+                    onMapMovedByUser = onMapMovedByUser
                 )
             }
         }
@@ -71,7 +75,9 @@ fun CyclewaysMapView(
             )
 
             if (hasLocationPermission && centerOnUserLocationRequest > 0) {
-                centerCameraOnUserLocation(map)
+                centerCameraOnUserLocation(
+                    map = map, onCameraCenteredOnUserLocation = onCameraCenteredOnUserLocation
+                )
             }
         }
     })
@@ -116,6 +122,8 @@ private fun setupMap(
     styleUrl: String,
     geoJson: String,
     hasLocationPermission: Boolean,
+    onCameraCenteredOnUserLocation: () -> Unit,
+    onMapMovedByUser: () -> Unit,
     onCyclewayClick: (SelectedCyclewayUi) -> Unit
 ) {
     map.cameraPosition =
@@ -132,9 +140,18 @@ private fun setupMap(
             map = map, onCyclewayClick = onCyclewayClick
         )
 
+        map.addOnCameraMoveStartedListener { reason ->
+            if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) {
+                onMapMovedByUser()
+            }
+        }
+
         if (hasLocationPermission) {
             enableUserLocationAndCenterOnce(
-                context = context, map = map, style = style
+                context = context,
+                map = map,
+                style = style,
+                onCameraCenteredOnUserLocation = onCameraCenteredOnUserLocation
             )
         }
     }
@@ -179,8 +196,7 @@ private fun addOrUpdateCyclewaysLayer(
 }
 
 private fun setupCyclewayClickListener(
-    map: MapLibreMap,
-    onCyclewayClick: (SelectedCyclewayUi) -> Unit
+    map: MapLibreMap, onCyclewayClick: (SelectedCyclewayUi) -> Unit
 ) {
     map.addOnMapClickListener { latLng ->
         val screenPoint = map.projection.toScreenLocation(latLng)
@@ -193,8 +209,7 @@ private fun setupCyclewayClickListener(
         )
 
         val features = map.queryRenderedFeatures(
-            tapBox,
-            CYCLEWAYS_LAYER_ID
+            tapBox, CYCLEWAYS_LAYER_ID
         ).toList()
 
         val selectedFeature = features.firstOrNull()
@@ -210,7 +225,7 @@ private fun setupCyclewayClickListener(
 
 @SuppressLint("MissingPermission")
 private fun enableUserLocationAndCenterOnce(
-    context: Context, map: MapLibreMap, style: Style
+    context: Context, map: MapLibreMap, style: Style, onCameraCenteredOnUserLocation: () -> Unit
 ) {
     val locationComponent = map.locationComponent
 
@@ -223,6 +238,7 @@ private fun enableUserLocationAndCenterOnce(
     locationComponent.activateLocationComponent(activationOptions)
     locationComponent.isLocationComponentEnabled = true
     locationComponent.renderMode = RenderMode.COMPASS
+    locationComponent.cameraMode = CameraMode.NONE
 
     locationComponent.lastKnownLocation?.let { location ->
         map.animateCamera(
@@ -230,14 +246,14 @@ private fun enableUserLocationAndCenterOnce(
                 LatLng(location.latitude, location.longitude), 15.0
             )
         )
-    }
 
-    locationComponent.cameraMode = CameraMode.NONE
+        onCameraCenteredOnUserLocation()
+    }
 }
 
 @SuppressLint("MissingPermission")
 private fun centerCameraOnUserLocation(
-    map: MapLibreMap
+    map: MapLibreMap, onCameraCenteredOnUserLocation: () -> Unit
 ) {
     val location = map.locationComponent.lastKnownLocation ?: return
 
@@ -246,93 +262,77 @@ private fun centerCameraOnUserLocation(
             LatLng(location.latitude, location.longitude), 15.0
         )
     )
+
+    onCameraCenteredOnUserLocation()
 }
 
 private fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
     return SelectedCyclewayUi(
         objectId = propertyOrFallback(
             "OBJECTID", fallback = UNKNOWN_VALUE
-        ),
-        code = propertyOrFallback(
+        ), code = propertyOrFallback(
             "CODIGO", fallback = UNKNOWN_VALUE
-        ),
-        status = formatText(
+        ), status = formatText(
             propertyOrFallback(
                 "ESTADO", fallback = UNKNOWN_VALUE
             )
-        ),
-        district = formatTitleCase(
+        ), district = formatTitleCase(
             propertyOrFallback(
                 "DISTRITO", fallback = UNKNOWN_VALUE
             )
-        ),
-        name = formatTitleCase(
+        ), name = formatTitleCase(
             propertyOrFallback(
                 "NOMBRE", fallback = "Ciclovía seleccionada"
             )
-        ),
-        section = formatTitleCase(
+        ), section = formatTitleCase(
             propertyOrFallback(
                 "TRAMO", fallback = UNKNOWN_VALUE
             )
-        ),
-        roadType = formatText(
+        ), roadType = formatText(
             propertyOrFallback(
                 "SECC_VIAL", fallback = UNKNOWN_VALUE
             )
-        ),
-        cyclewayPosition = formatText(
+        ), cyclewayPosition = formatText(
             propertyOrFallback(
                 "UBIC_VIAL", fallback = UNKNOWN_VALUE
             )
-        ),
-        lengthKm = formatLengthKm(
+        ), lengthKm = formatLengthKm(
             propertyOrFallback(
                 "LONGITUD", fallback = UNKNOWN_VALUE
             )
-        ),
-        direction = formatText(
+        ), direction = formatText(
             propertyOrFallback(
                 "DIRECC", fallback = UNKNOWN_VALUE
             )
-        ),
-        segregationType = formatSegregationType(
+        ), segregationType = formatSegregationType(
             propertyOrFallback(
                 "SEGREGAC", fallback = UNKNOWN_VALUE
             )
-        ),
-        lighting = formatText(
+        ), lighting = formatText(
             propertyOrFallback(
                 "ILUMINAC", fallback = UNKNOWN_VALUE
             )
-        ),
-        surveillance = formatText(
+        ), surveillance = formatText(
             propertyOrFallback(
                 "VIGILANCIA", fallback = UNKNOWN_VALUE
             )
-        ),
-        projectName = formatTitleCase(
+        ), projectName = formatTitleCase(
             propertyOrFallback(
                 "NOM_PROY", fallback = UNKNOWN_VALUE
             )
-        ),
-        quantity = propertyOrFallback(
+        ), quantity = propertyOrFallback(
             "CANTIDAD", fallback = UNKNOWN_VALUE
-        ),
-        implementationType = formatText(
+        ), implementationType = formatText(
             propertyOrFallback(
                 "EMERGENTE", fallback = UNKNOWN_VALUE
             )
-        ),
-        year = propertyOrFallback(
+        ), year = propertyOrFallback(
             "AÑO", fallback = UNKNOWN_VALUE
-        ),
-        authorityType = formatText(
+        ), authorityType = formatText(
             propertyOrFallback(
                 "ENTIDAD", fallback = UNKNOWN_VALUE
             )
-        ),
-        creationDate = propertyOrFallback(
+        ), creationDate = propertyOrFallback(
             "CREACION", fallback = UNKNOWN_VALUE
         )
     )
@@ -386,26 +386,18 @@ private fun formatTitleCase(value: String): String {
 }
 
 private fun formatSegregationType(value: String): String {
-    if (
-        value.isBlank() ||
-        value.equals(UNKNOWN_VALUE, ignoreCase = true)
-    ) {
+    if (value.isBlank() || value.equals(UNKNOWN_VALUE, ignoreCase = true)) {
         return UNKNOWN_VALUE
     }
 
-    val values = value
-        .split(",")
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-        .map { formatText(it).lowercase() }
-        .distinct()
+    val values = value.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        .map { formatText(it).lowercase() }.distinct()
 
     return when (values.size) {
         0 -> UNKNOWN_VALUE
 
         1 -> {
-            values.first()
-                .replaceFirstChar { it.uppercase() }
+            values.first().replaceFirstChar { it.uppercase() }
         }
 
         2 -> {
@@ -416,9 +408,7 @@ private fun formatSegregationType(value: String): String {
             val firstValues = values.dropLast(1)
             val lastValue = values.last()
 
-            firstValues.joinToString(", ")
-                .replaceFirstChar { it.uppercase() } +
-                    " y $lastValue"
+            firstValues.joinToString(", ").replaceFirstChar { it.uppercase() } + " y $lastValue"
         }
     }
 }

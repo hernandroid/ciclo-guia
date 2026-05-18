@@ -55,6 +55,26 @@ class MapViewModel @Inject constructor(
                 }
             }
 
+            MapUiEvent.CameraCenteredOnUserLocation -> {
+                val currentState = _uiState.value
+
+                if (currentState is MapUiState.Content) {
+                    _uiState.value = currentState.copy(
+                        isFollowingUserLocation = true
+                    )
+                }
+            }
+
+            MapUiEvent.MapMovedByUser -> {
+                val currentState = _uiState.value
+
+                if (currentState is MapUiState.Content) {
+                    _uiState.value = currentState.copy(
+                        isFollowingUserLocation = false
+                    )
+                }
+            }
+
             is MapUiEvent.CyclewayClicked -> {
                 val currentState = _uiState.value
 

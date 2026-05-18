@@ -40,7 +40,11 @@ fun MapScreen(
                         onEvent(MapUiEvent.CenterOnUserLocationClicked)
                     },
                     containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary,
+                    contentColor = if (uiState.isFollowingUserLocation) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
                     elevation = FloatingActionButtonDefaults.elevation(
                         defaultElevation = 4.dp
                     )
@@ -89,6 +93,12 @@ fun MapScreen(
                         geoJson = uiState.geoJson,
                         hasLocationPermission = hasLocationPermission,
                         centerOnUserLocationRequest = uiState.centerOnUserLocationRequest,
+                        onCameraCenteredOnUserLocation = {
+                            onEvent(MapUiEvent.CameraCenteredOnUserLocation)
+                        },
+                        onMapMovedByUser = {
+                            onEvent(MapUiEvent.MapMovedByUser)
+                        },
                         onCyclewayClick = { cycleway ->
                             onEvent(MapUiEvent.CyclewayClicked(cycleway))
                         }

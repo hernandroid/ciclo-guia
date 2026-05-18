@@ -12,7 +12,8 @@ sealed interface MapUiState {
         val selectedCyclewayName: String = "Ciclovías de Lima",
         val selectedCycleway: SelectedCyclewayUi? = null,
         val isSyncing: Boolean = false,
-        val centerOnUserLocationRequest: Int = 0
+        val centerOnUserLocationRequest: Int = 0,
+        val isFollowingUserLocation: Boolean = false
     ) : MapUiState
 
     data class Error(
