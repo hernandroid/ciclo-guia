@@ -486,7 +486,7 @@ private fun fitCameraToSelectedFeature(
 
     val horizontalPaddingPx = 96
     val topPaddingPx = 96
-    val extraBottomMarginPx = 24
+    val extraBottomMarginPx = 96
 
     map.animateCamera(
         CameraUpdateFactory.newLatLngBounds(
