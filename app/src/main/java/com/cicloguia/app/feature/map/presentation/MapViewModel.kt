@@ -6,6 +6,7 @@ import com.cicloguia.app.feature.map.domain.model.SyncCyclewaysResult
 import com.cicloguia.app.feature.map.domain.usecase.GetCachedCyclewaysGeoJsonUseCase
 import com.cicloguia.app.feature.map.domain.usecase.GetMapStyleUrlUseCase
 import com.cicloguia.app.feature.map.domain.usecase.SyncCyclewaysUseCase
+import com.cicloguia.app.feature.map.presentation.model.CyclewayLegendUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import javax.inject.Inject
 
 @HiltViewModel
@@ -46,40 +48,32 @@ class MapViewModel @Inject constructor(
             }
 
             MapUiEvent.CenterOnUserLocationClicked -> {
-                val currentState = _uiState.value
-
-                if (currentState is MapUiState.Content) {
-                    _uiState.value = currentState.copy(
+                updateContentState { currentState ->
+                    currentState.copy(
                         centerOnUserLocationRequest = currentState.centerOnUserLocationRequest + 1
                     )
                 }
             }
 
             MapUiEvent.CameraCenteredOnUserLocation -> {
-                val currentState = _uiState.value
-
-                if (currentState is MapUiState.Content) {
-                    _uiState.value = currentState.copy(
+                updateContentState { currentState ->
+                    currentState.copy(
                         isFollowingUserLocation = true
                     )
                 }
             }
 
             MapUiEvent.MapMovedByUser -> {
-                val currentState = _uiState.value
-
-                if (currentState is MapUiState.Content) {
-                    _uiState.value = currentState.copy(
+                updateContentState { currentState ->
+                    currentState.copy(
                         isFollowingUserLocation = false
                     )
                 }
             }
 
             is MapUiEvent.CyclewayClicked -> {
-                val currentState = _uiState.value
-
-                if (currentState is MapUiState.Content) {
-                    _uiState.value = currentState.copy(
+                updateContentState { currentState ->
+                    currentState.copy(
                         selectedCyclewayName = event.cycleway.name,
                         selectedCycleway = event.cycleway
                     )
@@ -87,11 +81,9 @@ class MapViewModel @Inject constructor(
             }
 
             MapUiEvent.DismissSelectedCycleway -> {
-                val currentState = _uiState.value
-
-                if (currentState is MapUiState.Content) {
-                    _uiState.value = currentState.copy(
-                        selectedCyclewayName = "Ciclovías de Lima",
+                updateContentState { currentState ->
+                    currentState.copy(
+                        selectedCyclewayName = DEFAULT_SELECTED_CYCLEWAY_NAME,
                         selectedCycleway = null
                     )
                 }
@@ -110,7 +102,8 @@ class MapViewModel @Inject constructor(
                 _uiState.value = MapUiState.Content(
                     geoJson = cachedGeoJson,
                     mapStyleUrl = mapStyleUrl,
-                    isSyncing = true
+                    isSyncing = true,
+                    legend = buildLegendFromGeoJson(cachedGeoJson)
                 )
             }
 
@@ -120,10 +113,19 @@ class MapViewModel @Inject constructor(
                     val latestGeoJson = getCachedCyclewaysGeoJsonUseCase()
 
                     _uiState.value = if (latestGeoJson != null) {
-                        MapUiState.Content(
+                        val latestLegend = buildLegendFromGeoJson(latestGeoJson)
+                        val currentContent = _uiState.value as? MapUiState.Content
+
+                        currentContent?.copy(
                             geoJson = latestGeoJson,
                             mapStyleUrl = mapStyleUrl,
-                            isSyncing = false
+                            isSyncing = false,
+                            legend = latestLegend
+                        ) ?: MapUiState.Content(
+                            geoJson = latestGeoJson,
+                            mapStyleUrl = mapStyleUrl,
+                            isSyncing = false,
+                            legend = latestLegend
                         )
                     } else {
                         MapUiState.Error(
@@ -134,10 +136,19 @@ class MapViewModel @Inject constructor(
 
                 is SyncCyclewaysResult.Failed -> {
                     _uiState.value = if (cachedGeoJson != null) {
-                        MapUiState.Content(
+                        val cachedLegend = buildLegendFromGeoJson(cachedGeoJson)
+                        val currentContent = _uiState.value as? MapUiState.Content
+
+                        currentContent?.copy(
                             geoJson = cachedGeoJson,
                             mapStyleUrl = mapStyleUrl,
-                            isSyncing = false
+                            isSyncing = false,
+                            legend = cachedLegend
+                        ) ?: MapUiState.Content(
+                            geoJson = cachedGeoJson,
+                            mapStyleUrl = mapStyleUrl,
+                            isSyncing = false,
+                            legend = cachedLegend
                         )
                     } else {
                         MapUiState.Error(
@@ -148,5 +159,63 @@ class MapViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun updateContentState(
+        update: (MapUiState.Content) -> MapUiState.Content
+    ) {
+        val currentState = _uiState.value
+
+        if (currentState is MapUiState.Content) {
+            _uiState.value = update(currentState)
+        }
+    }
+
+    private fun buildLegendFromGeoJson(
+        geoJson: String
+    ): CyclewayLegendUi {
+        return runCatching {
+            val features = JSONObject(geoJson).optJSONArray("features")
+                ?: return CyclewayLegendUi()
+
+            var existingCount = 0
+            var plannedCount = 0
+            var underConstructionCount = 0
+
+            for (index in 0 until features.length()) {
+                val feature = features.optJSONObject(index) ?: continue
+                val properties = feature.optJSONObject("properties") ?: continue
+
+                when (properties.optString("ESTADO").normalizeState()) {
+                    STATE_EXISTING -> existingCount++
+                    STATE_PLANNED -> plannedCount++
+                    STATE_UNDER_CONSTRUCTION -> underConstructionCount++
+                }
+            }
+
+            CyclewayLegendUi(
+                existingCount = existingCount,
+                plannedCount = plannedCount,
+                underConstructionCount = underConstructionCount
+            )
+        }.getOrDefault(CyclewayLegendUi())
+    }
+
+    private fun String.normalizeState(): String {
+        return trim()
+            .uppercase()
+            .replace("Á", "A")
+            .replace("É", "E")
+            .replace("Í", "I")
+            .replace("Ó", "O")
+            .replace("Ú", "U")
+    }
+
+    private companion object {
+        const val DEFAULT_SELECTED_CYCLEWAY_NAME = "Ciclovías de Lima"
+
+        const val STATE_EXISTING = "EXISTENTE"
+        const val STATE_PLANNED = "EN PROYECTO"
+        const val STATE_UNDER_CONSTRUCTION = "EN EJECUCION"
     }
 }

@@ -1,5 +1,6 @@
 package com.cicloguia.app.feature.map.presentation
 
+import com.cicloguia.app.feature.map.presentation.model.CyclewayLegendUi
 import com.cicloguia.app.feature.map.presentation.model.SelectedCyclewayUi
 
 sealed interface MapUiState {
@@ -13,7 +14,8 @@ sealed interface MapUiState {
         val selectedCycleway: SelectedCyclewayUi? = null,
         val isSyncing: Boolean = false,
         val centerOnUserLocationRequest: Int = 0,
-        val isFollowingUserLocation: Boolean = false
+        val isFollowingUserLocation: Boolean = false,
+        val legend: CyclewayLegendUi = CyclewayLegendUi()
     ) : MapUiState
 
     data class Error(
