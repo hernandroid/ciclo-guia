@@ -15,11 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import com.cicloguia.app.feature.map.presentation.components.CyclewayDetailSheet
 import com.cicloguia.app.feature.map.presentation.components.CyclewaysMapView
@@ -34,6 +36,14 @@ fun MapScreen(
 ) {
     var isLegendExpanded by remember {
         mutableStateOf(false)
+    }
+
+    var bottomSheetHeightPx by remember {
+        mutableIntStateOf(0)
+    }
+
+    var selectedCyclewayCameraFitRequest by remember {
+        mutableIntStateOf(0)
     }
 
     Scaffold(
@@ -102,6 +112,8 @@ fun MapScreen(
                         hasLocationPermission = hasLocationPermission,
                         centerOnUserLocationRequest = uiState.centerOnUserLocationRequest,
                         selectedCycleway = uiState.selectedCycleway,
+                        selectedCyclewayCameraFitRequest = selectedCyclewayCameraFitRequest,
+                        bottomSheetHeightPx = bottomSheetHeightPx,
                         onCameraCenteredOnUserLocation = {
                             onEvent(MapUiEvent.CameraCenteredOnUserLocation)
                         },
@@ -109,6 +121,7 @@ fun MapScreen(
                             onEvent(MapUiEvent.MapMovedByUser)
                         },
                         onCyclewayClick = { cycleway ->
+                            bottomSheetHeightPx = 0
                             onEvent(MapUiEvent.CyclewayClicked(cycleway))
                         }
                     )
@@ -132,12 +145,21 @@ fun MapScreen(
 
                     uiState.selectedCycleway?.let { cycleway ->
                         CyclewayDetailSheet(
+                            modifier = Modifier.onGloballyPositioned { coordinates ->
+                                val newHeight = coordinates.size.height
+
+                                if (newHeight > 0 && newHeight != bottomSheetHeightPx) {
+                                    bottomSheetHeightPx = newHeight
+                                    selectedCyclewayCameraFitRequest++
+                                }
+                            },
                             cycleway = cycleway,
                             onDismiss = {
+                                bottomSheetHeightPx = 0
                                 onEvent(MapUiEvent.DismissSelectedCycleway)
                             },
                             onViewRouteClick = {
-
+                                // TODO: Implement route action
                             }
                         )
                     }

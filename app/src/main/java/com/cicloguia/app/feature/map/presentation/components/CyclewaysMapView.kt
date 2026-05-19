@@ -2,6 +2,7 @@ package com.cicloguia.app.feature.map.presentation.components
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.RectF
 import android.os.Bundle
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -75,6 +76,9 @@ private const val EMPTY_FEATURE_COLLECTION = """
 }
 """
 
+private var selectedMapFeature: Feature? = null
+private var lastHandledCameraFitRequest: Int = 0
+
 @Composable
 fun CyclewaysMapView(
     styleUrl: String,
@@ -82,6 +86,8 @@ fun CyclewaysMapView(
     hasLocationPermission: Boolean,
     centerOnUserLocationRequest: Int,
     selectedCycleway: SelectedCyclewayUi?,
+    selectedCyclewayCameraFitRequest: Int,
+    bottomSheetHeightPx: Int,
     onCameraCenteredOnUserLocation: () -> Unit,
     onMapMovedByUser: () -> Unit,
     onCyclewayClick: (SelectedCyclewayUi) -> Unit,
@@ -115,9 +121,26 @@ fun CyclewaysMapView(
                 )
 
                 if (selectedCycleway == null) {
+                    selectedMapFeature = null
+                    lastHandledCameraFitRequest = 0
+
                     map.style?.let { style ->
                         clearSelectedCyclewayFeature(style)
                     }
+                }
+
+                if (
+                    selectedCycleway != null &&
+                    selectedCyclewayCameraFitRequest > 0 &&
+                    selectedCyclewayCameraFitRequest != lastHandledCameraFitRequest &&
+                    bottomSheetHeightPx > 0
+                ) {
+                    fitCameraToSelectedFeature(
+                        map = map,
+                        bottomSheetHeightPx = bottomSheetHeightPx
+                    )
+
+                    lastHandledCameraFitRequest = selectedCyclewayCameraFitRequest
                 }
 
                 if (hasLocationPermission && centerOnUserLocationRequest > 0) {
@@ -384,7 +407,7 @@ private fun setupCyclewayClickListener(
     map.addOnMapClickListener { latLng ->
         val screenPoint = map.projection.toScreenLocation(latLng)
 
-        val tapBox = android.graphics.RectF(
+        val tapBox = RectF(
             (screenPoint.x - CYCLEWAY_TAP_TOLERANCE_PX).toFloat(),
             (screenPoint.y - CYCLEWAY_TAP_TOLERANCE_PX).toFloat(),
             (screenPoint.x + CYCLEWAY_TAP_TOLERANCE_PX).toFloat(),
@@ -401,6 +424,9 @@ private fun setupCyclewayClickListener(
         val selectedFeature = features.firstOrNull()
 
         if (selectedFeature != null) {
+            selectedMapFeature = selectedFeature
+            lastHandledCameraFitRequest = 0
+
             map.style?.let { style ->
                 updateSelectedCyclewayFeature(
                     style = style,
@@ -408,14 +434,12 @@ private fun setupCyclewayClickListener(
                 )
             }
 
-            fitCameraToFeature(
-                map = map,
-                feature = selectedFeature
-            )
-
             onCyclewayClick(selectedFeature.toSelectedCyclewayUi())
             true
         } else {
+            selectedMapFeature = null
+            lastHandledCameraFitRequest = 0
+
             map.style?.let { style ->
                 clearSelectedCyclewayFeature(style)
             }
@@ -453,19 +477,24 @@ private fun clearSelectedCyclewayFeature(
     selectedSource.setGeoJson(EMPTY_FEATURE_COLLECTION)
 }
 
-private fun fitCameraToFeature(
+private fun fitCameraToSelectedFeature(
     map: MapLibreMap,
-    feature: Feature
+    bottomSheetHeightPx: Int
 ) {
+    val feature = selectedMapFeature ?: return
     val bounds = feature.getLatLngBounds() ?: return
+
+    val horizontalPaddingPx = 96
+    val topPaddingPx = 96
+    val extraBottomMarginPx = 24
 
     map.animateCamera(
         CameraUpdateFactory.newLatLngBounds(
             bounds,
-            96,
-            96,
-            96,
-            760
+            horizontalPaddingPx,
+            topPaddingPx,
+            horizontalPaddingPx,
+            bottomSheetHeightPx + extraBottomMarginPx
         ),
         CAMERA_ANIMATION_DURATION_MS
     )
