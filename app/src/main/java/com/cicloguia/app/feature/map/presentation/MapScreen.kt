@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
+import com.cicloguia.app.BuildConfig
 import com.cicloguia.app.feature.map.presentation.components.CyclewayDetailSheet
 import com.cicloguia.app.feature.map.presentation.components.CyclewaysMapView
 import com.cicloguia.app.feature.map.presentation.components.MapLegendCard
