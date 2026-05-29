@@ -6,7 +6,9 @@ import com.cicloguia.app.feature.map.domain.model.SyncCyclewaysResult
 import com.cicloguia.app.feature.map.domain.usecase.GetCachedCyclewaysGeoJsonUseCase
 import com.cicloguia.app.feature.map.domain.usecase.GetMapStyleUrlUseCase
 import com.cicloguia.app.feature.map.domain.usecase.SyncCyclewaysUseCase
+import com.cicloguia.app.feature.map.presentation.model.CyclewayGeoJsonProperty
 import com.cicloguia.app.feature.map.presentation.model.CyclewayLegendUi
+import com.cicloguia.app.feature.map.presentation.model.CyclewayStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -175,7 +177,7 @@ class MapViewModel @Inject constructor(
         geoJson: String
     ): CyclewayLegendUi {
         return runCatching {
-            val features = JSONObject(geoJson).optJSONArray("features")
+            val features = JSONObject(geoJson).optJSONArray(GEOJSON_FEATURES_KEY)
                 ?: return CyclewayLegendUi()
 
             var existingCount = 0
@@ -184,12 +186,16 @@ class MapViewModel @Inject constructor(
 
             for (index in 0 until features.length()) {
                 val feature = features.optJSONObject(index) ?: continue
-                val properties = feature.optJSONObject("properties") ?: continue
+                val properties = feature.optJSONObject(GEOJSON_PROPERTIES_KEY) ?: continue
 
-                when (properties.optString("ESTADO").normalizeState()) {
-                    STATE_EXISTING -> existingCount++
-                    STATE_PLANNED -> plannedCount++
-                    STATE_UNDER_CONSTRUCTION -> underConstructionCount++
+                when (
+                    properties
+                        .optString(CyclewayGeoJsonProperty.STATUS)
+                        .normalizeState()
+                ) {
+                    CyclewayStatus.NORMALIZED_EXISTING -> existingCount++
+                    CyclewayStatus.NORMALIZED_PLANNED -> plannedCount++
+                    CyclewayStatus.NORMALIZED_UNDER_CONSTRUCTION -> underConstructionCount++
                 }
             }
 
@@ -214,8 +220,7 @@ class MapViewModel @Inject constructor(
     private companion object {
         const val DEFAULT_SELECTED_CYCLEWAY_NAME = "Ciclovías de Lima"
 
-        const val STATE_EXISTING = "EXISTENTE"
-        const val STATE_PLANNED = "EN PROYECTO"
-        const val STATE_UNDER_CONSTRUCTION = "EN EJECUCION"
+        const val GEOJSON_FEATURES_KEY = "features"
+        const val GEOJSON_PROPERTIES_KEY = "properties"
     }
 }

@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cicloguia.app.core.designsystem.theme.LocalSpacing
+import com.cicloguia.app.feature.map.presentation.model.CyclewayMapColor
 import com.cicloguia.app.feature.map.presentation.model.SelectedCyclewayUi
 import kotlinx.coroutines.launch
 
@@ -461,68 +461,6 @@ private fun TooltipTextValue(
 }
 
 @Composable
-private fun MultiValueDetailRow(
-    icon: ImageVector,
-    title: String,
-    values: List<String>,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(22.dp)
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            values.forEach { value ->
-                ValueChip(text = value)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ValueChip(
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
-    ) {
-        Text(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1
-        )
-    }
-}
-
-@Composable
 private fun DetailDivider() {
     Spacer(
         modifier = Modifier
@@ -594,9 +532,9 @@ private fun qualityColor(value: String): Color {
 @Composable
 private fun statusColor(value: String): Color {
     return when (value.lowercase()) {
-        "existente" -> MaterialTheme.colorScheme.primary
-        "en proyecto" -> Color(0xFFFFA000)
-        "en ejecución", "en ejecucion" -> Color(0xFF1976D2)
+        "existente" -> CyclewayMapColor.Existing
+        "en proyecto" -> CyclewayMapColor.Planned
+        "en ejecución", "en ejecucion" -> CyclewayMapColor.UnderConstruction
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }

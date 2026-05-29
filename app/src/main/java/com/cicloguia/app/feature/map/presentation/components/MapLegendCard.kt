@@ -5,7 +5,14 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -23,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cicloguia.app.feature.map.presentation.model.CyclewayLegendUi
+import com.cicloguia.app.feature.map.presentation.model.CyclewayMapColor
 
 @Composable
 fun MapLegendCard(
@@ -109,7 +117,7 @@ private fun ExpandedLegend(
         Spacer(modifier = Modifier.height(10.dp))
 
         LegendItem(
-            color = Color(0xFF00B37A),
+            color = CyclewayMapColor.Existing,
             label = "Existente",
             description = "Ciclovías construidas",
             count = legend.existingCount.toString(),
@@ -123,7 +131,7 @@ private fun ExpandedLegend(
         )
 
         LegendItem(
-            color = Color(0xFFFF7A00),
+            color = CyclewayMapColor.Planned,
             label = "En proyecto",
             description = "Ciclovías planificadas",
             count = legend.plannedCount.toString(),
@@ -138,12 +146,12 @@ private fun ExpandedLegend(
         )
 
         LegendItem(
-            color = Color(0xFF1976D2),
+            color = CyclewayMapColor.UnderConstruction,
             label = "En ejecución",
             description = "Ciclovías en construcción",
             count = legend.underConstructionCount.toString(),
             countContainerColor = Color(0xFFDCEEFF),
-            countContentColor = Color(0xFF1976D2)
+            countContentColor = CyclewayMapColor.UnderConstruction
         )
     }
 }
