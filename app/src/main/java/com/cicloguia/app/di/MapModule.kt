@@ -2,6 +2,8 @@ package com.cicloguia.app.di
 
 import com.cicloguia.app.BuildConfig
 import com.cicloguia.app.feature.map.data.CyclewaysRepositoryImpl
+import com.cicloguia.app.feature.map.data.local.CyclewaysAssetDataSource
+import com.cicloguia.app.feature.map.data.local.CyclewaysAssetDataSourceImpl
 import com.cicloguia.app.feature.map.data.local.CyclewaysFileDataSource
 import com.cicloguia.app.feature.map.data.local.CyclewaysFileDataSourceImpl
 import com.cicloguia.app.feature.map.data.local.CyclewaysMetadataLocalDataSource
@@ -40,6 +42,12 @@ abstract class MapModule {
     abstract fun bindCyclewaysFileDataSource(
         impl: CyclewaysFileDataSourceImpl
     ): CyclewaysFileDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindCyclewaysAssetDataSource(
+        impl: CyclewaysAssetDataSourceImpl
+    ): CyclewaysAssetDataSource
 
     @Binds
     @Singleton
