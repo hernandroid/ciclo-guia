@@ -1,5 +1,6 @@
 package com.cicloguia.app.feature.map.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cicloguia.app.feature.map.domain.model.SyncCyclewaysResult
@@ -150,17 +151,19 @@ class MapViewModel @Inject constructor(
                         )
                     } else {
                         MapUiState.Error(
-                            message = "No se encontró información local de ciclovías"
+                            message = MapErrorMessageResolver.unavailableDatasetMessage()
                         )
                     }
                 }
 
                 is SyncCyclewaysResult.Failed -> {
+                    logSyncFailure(result.error)
+
                     _uiState.value = if (cachedGeoJson != null) {
                         val cachedLegend = buildLegendFromGeoJson(cachedGeoJson)
                         val currentContent = _uiState.value as? MapUiState.Content
 
-                        currentContent?.copy(
+                        val contentState = currentContent?.copy(
                             geoJson = cachedGeoJson,
                             mapStyleUrl = mapStyleUrl,
                             isSyncing = false,
@@ -171,10 +174,19 @@ class MapViewModel @Inject constructor(
                             isSyncing = false,
                             legend = cachedLegend
                         )
+
+                        _effect.emit(
+                            MapUiEffect.ShowMessage(
+                                MapErrorMessageResolver
+                                    .synchronizationFailedWithAvailableDataMessage()
+                            )
+                        )
+
+                        contentState
                     } else {
                         MapUiState.Error(
-                            message = result.error.message
-                                ?: "No se pudieron cargar las ciclovías"
+                            message = MapErrorMessageResolver
+                                .noAvailableDataMessage(result.error)
                         )
                     }
                 }
@@ -226,6 +238,14 @@ class MapViewModel @Inject constructor(
         }.getOrDefault(CyclewayLegendUi())
     }
 
+    private fun logSyncFailure(error: Throwable) {
+        Log.e(
+            TAG,
+            "Cycleways synchronization failed",
+            error
+        )
+    }
+
     private fun String.normalizeState(): String {
         return trim()
             .uppercase()
@@ -237,6 +257,8 @@ class MapViewModel @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "MapViewModel"
+
         const val DEFAULT_SELECTED_CYCLEWAY_NAME = "Ciclovías de Lima"
 
         const val GEOJSON_FEATURES_KEY = "features"
