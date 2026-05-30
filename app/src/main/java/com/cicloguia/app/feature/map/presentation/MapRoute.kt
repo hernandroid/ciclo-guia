@@ -25,7 +25,6 @@ import com.google.accompanist.permissions.shouldShowRationale
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapRoute(
-    onNavigateToReport: () -> Unit,
     viewModel: MapViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -46,7 +45,6 @@ fun MapRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                MapUiEffect.NavigateToReport -> onNavigateToReport()
                 is MapUiEffect.OpenExternalNavigation -> {
                     val opened = openExternalNavigation(
                         context = context,

@@ -51,11 +51,7 @@ fun CicloGuiaNavGraph() {
         }
 
         composable(AppRoute.Map.route) {
-            MapRoute(
-                onNavigateToReport = {
-                    // Próximo paso: navegar a ReportScreen
-                }
-            )
+            MapRoute()
         }
     }
 }

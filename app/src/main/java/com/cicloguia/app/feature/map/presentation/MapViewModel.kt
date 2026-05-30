@@ -41,7 +41,7 @@ class MapViewModel @Inject constructor(
         when (event) {
             MapUiEvent.ReportClicked -> {
                 viewModelScope.launch {
-                    _effect.emit(MapUiEffect.NavigateToReport)
+                    _effect.emit(MapReportBetaBehavior.reportClickedEffect())
                 }
             }
 
