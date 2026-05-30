@@ -1,9 +1,13 @@
 package com.cicloguia.app.feature.map.presentation.mapper
 
 import com.cicloguia.app.feature.map.presentation.formatter.CyclewayTextFormatter
+import com.cicloguia.app.feature.map.presentation.model.CyclewayDestinationUi
 import com.cicloguia.app.feature.map.presentation.model.CyclewayGeoJsonProperty
 import com.cicloguia.app.feature.map.presentation.model.SelectedCyclewayUi
 import org.maplibre.geojson.Feature
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.MultiLineString
+import org.maplibre.geojson.Point
 
 fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
     return SelectedCyclewayUi(
@@ -56,7 +60,8 @@ fun Feature.toSelectedCyclewayUi(): SelectedCyclewayUi {
         authorityType = CyclewayTextFormatter.formatText(
             propertyOrFallback(CyclewayGeoJsonProperty.AUTHORITY_TYPE)
         ),
-        creationDate = propertyOrFallback(CyclewayGeoJsonProperty.CREATION_DATE)
+        creationDate = propertyOrFallback(CyclewayGeoJsonProperty.CREATION_DATE),
+        destination = destinationFromGeometry()
     )
 }
 
@@ -70,6 +75,24 @@ private fun Feature.propertyOrFallback(
         .trim()
         .takeIf { it.isNotBlank() }
         ?: fallback
+}
+
+private fun Feature.destinationFromGeometry(): CyclewayDestinationUi? {
+    val points = when (val geometry = geometry()) {
+        is LineString -> geometry.coordinates()
+        is MultiLineString -> geometry.coordinates().flatten()
+        is Point -> listOf(geometry)
+        else -> emptyList()
+    }
+
+    if (points.isEmpty()) return null
+
+    val destinationPoint = points[points.lastIndex / 2]
+
+    return CyclewayDestinationUi(
+        latitude = destinationPoint.latitude(),
+        longitude = destinationPoint.longitude()
+    )
 }
 
 private const val UNKNOWN_VALUE = "No especificado"

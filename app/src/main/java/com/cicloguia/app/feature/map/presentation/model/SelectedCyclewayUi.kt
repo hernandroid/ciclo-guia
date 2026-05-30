@@ -19,5 +19,6 @@ data class SelectedCyclewayUi(
     val implementationType: String,
     val year: String,
     val authorityType: String,
-    val creationDate: String
+    val creationDate: String,
+    val destination: CyclewayDestinationUi?
 )

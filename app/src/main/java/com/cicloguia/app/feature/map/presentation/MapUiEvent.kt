@@ -9,6 +9,7 @@ sealed interface MapUiEvent {
     data object CameraCenteredOnUserLocation : MapUiEvent
     data object DismissSelectedCycleway : MapUiEvent
     data object MapMovedByUser : MapUiEvent
+    data object StartRouteClicked : MapUiEvent
 
     data class CyclewayClicked(
         val cycleway: SelectedCyclewayUi

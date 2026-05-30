@@ -45,6 +45,25 @@ class MapViewModel @Inject constructor(
                 }
             }
 
+            MapUiEvent.StartRouteClicked -> {
+                val selectedCycleway = (_uiState.value as? MapUiState.Content)
+                    ?.selectedCycleway
+
+                viewModelScope.launch {
+                    val destination = selectedCycleway?.destination
+
+                    if (destination != null) {
+                        _effect.emit(MapUiEffect.OpenExternalNavigation(destination))
+                    } else {
+                        _effect.emit(
+                            MapUiEffect.ShowMessage(
+                                "No se encontró una ubicación para iniciar la ruta."
+                            )
+                        )
+                    }
+                }
+            }
+
             MapUiEvent.RetryClicked -> {
                 loadCycleways()
             }
