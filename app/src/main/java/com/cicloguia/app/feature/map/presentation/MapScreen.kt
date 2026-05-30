@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -31,7 +32,9 @@ import com.cicloguia.app.feature.map.presentation.components.MapLoadingOverlay
 @Composable
 fun MapScreen(
     uiState: MapUiState,
-    hasLocationPermission: Boolean,
+    locationPermissionStatus: MapLocationPermissionStatus,
+    onRequestLocationPermission: () -> Unit,
+    onOpenLocationSettings: () -> Unit,
     onEvent: (MapUiEvent) -> Unit
 ) {
     var isLegendExpanded by remember {
@@ -46,6 +49,13 @@ fun MapScreen(
         mutableIntStateOf(0)
     }
 
+    var showLocationPermissionDialog by remember {
+        mutableStateOf(false)
+    }
+
+    val hasLocationPermission =
+        locationPermissionStatus == MapLocationPermissionStatus.Granted
+
     Scaffold(
         floatingActionButton = {
             if (uiState is MapUiState.Content) {
@@ -55,7 +65,11 @@ fun MapScreen(
                         bottom = 18.dp
                     ),
                     onClick = {
-                        onEvent(MapUiEvent.CenterOnUserLocationClicked)
+                        if (hasLocationPermission) {
+                            onEvent(MapUiEvent.CenterOnUserLocationClicked)
+                        } else {
+                            showLocationPermissionDialog = true
+                        }
                     },
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = if (uiState.isFollowingUserLocation) {
@@ -167,4 +181,70 @@ fun MapScreen(
             }
         }
     }
+
+    if (showLocationPermissionDialog) {
+        LocationPermissionDialog(
+            permissionStatus = locationPermissionStatus,
+            onDismiss = {
+                showLocationPermissionDialog = false
+            },
+            onRequestLocationPermission = {
+                showLocationPermissionDialog = false
+                onRequestLocationPermission()
+            },
+            onOpenLocationSettings = {
+                showLocationPermissionDialog = false
+                onOpenLocationSettings()
+            }
+        )
+    }
+}
+
+@Composable
+private fun LocationPermissionDialog(
+    permissionStatus: MapLocationPermissionStatus,
+    onDismiss: () -> Unit,
+    onRequestLocationPermission: () -> Unit,
+    onOpenLocationSettings: () -> Unit
+) {
+    val isPermanentlyDenied =
+        permissionStatus == MapLocationPermissionStatus.PermanentlyDenied
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Activa tu ubicación")
+        },
+        text = {
+            Text(
+                text = if (isPermanentlyDenied) {
+                    "El permiso de ubicación está desactivado para Ciclo Guía. Actívalo desde los ajustes de Android para centrar el mapa en tu posición."
+                } else {
+                    "Tu ubicación nos ayuda a centrar el mapa en tu posición actual. Puedes seguir usando Ciclo Guía aunque no actives este permiso."
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = if (isPermanentlyDenied) {
+                    onOpenLocationSettings
+                } else {
+                    onRequestLocationPermission
+                }
+            ) {
+                Text(
+                    text = if (isPermanentlyDenied) {
+                        "Abrir ajustes"
+                    } else {
+                        "Permitir ubicación"
+                    }
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Ahora no")
+            }
+        }
+    )
 }
