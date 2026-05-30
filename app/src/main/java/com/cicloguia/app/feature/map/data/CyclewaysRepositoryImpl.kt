@@ -4,6 +4,8 @@ import com.cicloguia.app.feature.map.data.local.CyclewaysAssetDataSource
 import com.cicloguia.app.feature.map.data.local.CyclewaysFileDataSource
 import com.cicloguia.app.feature.map.data.local.CyclewaysMetadataLocalDataSource
 import com.cicloguia.app.feature.map.data.remote.CyclewaysRemoteDataSource
+import com.cicloguia.app.feature.map.domain.model.CyclewaysGeoJsonSource
+import com.cicloguia.app.feature.map.domain.model.LocalCyclewaysGeoJson
 import com.cicloguia.app.feature.map.domain.model.SyncCyclewaysResult
 import com.cicloguia.app.feature.map.domain.repository.CyclewaysRepository
 import javax.inject.Inject
@@ -15,15 +17,24 @@ class CyclewaysRepositoryImpl @Inject constructor(
     private val metadataLocalDataSource: CyclewaysMetadataLocalDataSource
 ) : CyclewaysRepository {
 
-    override suspend fun getCachedGeoJson(): String? {
+    override suspend fun getCachedGeoJson(): LocalCyclewaysGeoJson? {
         val cachedGeoJson = fileDataSource.readGeoJson()
 
-        if (cachedGeoJson.isValidGeoJson()) {
-            return cachedGeoJson
+        if (cachedGeoJson != null && CyclewaysGeoJsonValidator.isValid(cachedGeoJson)) {
+            return LocalCyclewaysGeoJson(
+                content = cachedGeoJson,
+                source = CyclewaysGeoJsonSource.DownloadedCache
+            )
         }
 
         return assetDataSource.readGeoJson()
             ?.takeIf { geoJson -> CyclewaysGeoJsonValidator.isValid(geoJson) }
+            ?.let { geoJson ->
+                LocalCyclewaysGeoJson(
+                    content = geoJson,
+                    source = CyclewaysGeoJsonSource.EmbeddedAsset
+                )
+            }
     }
 
     override suspend fun sync(): SyncCyclewaysResult {

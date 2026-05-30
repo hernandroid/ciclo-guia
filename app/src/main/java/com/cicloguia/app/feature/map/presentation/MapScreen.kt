@@ -1,8 +1,10 @@
 package com.cicloguia.app.feature.map.presentation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.AlertDialog
@@ -12,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +31,7 @@ import com.cicloguia.app.feature.map.presentation.components.CyclewayDetailSheet
 import com.cicloguia.app.feature.map.presentation.components.CyclewaysMapView
 import com.cicloguia.app.feature.map.presentation.components.MapLegendCard
 import com.cicloguia.app.feature.map.presentation.components.MapLoadingOverlay
+import com.cicloguia.app.feature.map.presentation.model.CyclewayLegendUi
 
 @Composable
 fun MapScreen(
@@ -157,6 +161,20 @@ fun MapScreen(
                         )
                     }
 
+                    MapDataSourceIndicator(
+                        dataSource = uiState.dataSource,
+                        isSyncing = uiState.isSyncing,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 16.dp)
+                    )
+
+                    if (uiState.legend.isEmpty()) {
+                        EmptyCyclewaysOverlay(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+
                     uiState.selectedCycleway?.let { cycleway ->
                         CyclewayDetailSheet(
                             modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -247,4 +265,69 @@ private fun LocationPermissionDialog(
             }
         }
     )
+}
+
+@Composable
+private fun MapDataSourceIndicator(
+    dataSource: MapDataSourceUi,
+    isSyncing: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val message = MapDataSourceMessageResolver.indicatorMessage(
+        dataSource = dataSource,
+        isSyncing = isSyncing
+    ) ?: return
+
+    Surface(
+        modifier = modifier.widthIn(max = 340.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        shadowElevation = 2.dp
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun EmptyCyclewaysOverlay(
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .padding(horizontal = 24.dp)
+            .widthIn(max = 360.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        shadowElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp)
+        ) {
+            Text(
+                text = "No hay ciclovías para mostrar",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                modifier = Modifier.padding(top = 6.dp),
+                text = "El mapa está disponible, pero no encontramos ciclovías en los datos cargados.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun CyclewayLegendUi.isEmpty(): Boolean {
+    return existingCount == 0 &&
+        plannedCount == 0 &&
+        underConstructionCount == 0
 }

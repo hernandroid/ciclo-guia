@@ -4,6 +4,7 @@ import com.cicloguia.app.feature.map.data.local.CyclewaysAssetDataSource
 import com.cicloguia.app.feature.map.data.local.CyclewaysFileDataSource
 import com.cicloguia.app.feature.map.data.local.CyclewaysMetadataLocalDataSource
 import com.cicloguia.app.feature.map.data.remote.CyclewaysRemoteDataSource
+import com.cicloguia.app.feature.map.domain.model.CyclewaysGeoJsonSource
 import com.cicloguia.app.feature.map.domain.model.CyclewaysDatasetMetadata
 import com.cicloguia.app.feature.map.domain.model.LocalCyclewaysMetadata
 import com.cicloguia.app.feature.map.domain.model.SyncCyclewaysResult
@@ -32,7 +33,8 @@ class CyclewaysRepositoryImplTest {
 
         val result = repository.getCachedGeoJson()
 
-        assertEquals(CACHED_GEOJSON, result)
+        assertEquals(CACHED_GEOJSON, result?.content)
+        assertEquals(CyclewaysGeoJsonSource.DownloadedCache, result?.source)
         assertFalse(assetDataSource.wasRead)
     }
 
@@ -48,7 +50,8 @@ class CyclewaysRepositoryImplTest {
 
         val result = repository.getCachedGeoJson()
 
-        assertEquals(ASSET_GEOJSON, result)
+        assertEquals(ASSET_GEOJSON, result?.content)
+        assertEquals(CyclewaysGeoJsonSource.EmbeddedAsset, result?.source)
         assertTrue(assetDataSource.wasRead)
     }
 
@@ -61,7 +64,8 @@ class CyclewaysRepositoryImplTest {
 
         val result = repository.getCachedGeoJson()
 
-        assertEquals(ASSET_GEOJSON, result)
+        assertEquals(ASSET_GEOJSON, result?.content)
+        assertEquals(CyclewaysGeoJsonSource.EmbeddedAsset, result?.source)
     }
 
     @Test

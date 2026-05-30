@@ -15,6 +15,7 @@ sealed interface MapUiState {
         val isSyncing: Boolean = false,
         val centerOnUserLocationRequest: Int = 0,
         val isFollowingUserLocation: Boolean = false,
+        val dataSource: MapDataSourceUi = MapDataSourceUi.Updated,
         val legend: CyclewayLegendUi = CyclewayLegendUi()
     ) : MapUiState
 

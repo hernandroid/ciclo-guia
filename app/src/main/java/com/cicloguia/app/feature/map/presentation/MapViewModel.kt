@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cicloguia.app.feature.map.domain.model.SyncCyclewaysResult
+import com.cicloguia.app.feature.map.domain.model.CyclewaysGeoJsonSource
 import com.cicloguia.app.feature.map.domain.usecase.GetCachedCyclewaysGeoJsonUseCase
 import com.cicloguia.app.feature.map.domain.usecase.GetMapStyleUrlUseCase
 import com.cicloguia.app.feature.map.domain.usecase.SyncCyclewaysUseCase
@@ -122,10 +123,11 @@ class MapViewModel @Inject constructor(
 
             if (cachedGeoJson != null) {
                 _uiState.value = MapUiState.Content(
-                    geoJson = cachedGeoJson,
+                    geoJson = cachedGeoJson.content,
                     mapStyleUrl = mapStyleUrl,
                     isSyncing = true,
-                    legend = buildLegendFromGeoJson(cachedGeoJson)
+                    dataSource = cachedGeoJson.source.toMapDataSourceUi(),
+                    legend = buildLegendFromGeoJson(cachedGeoJson.content)
                 )
             }
 
@@ -135,18 +137,20 @@ class MapViewModel @Inject constructor(
                     val latestGeoJson = getCachedCyclewaysGeoJsonUseCase()
 
                     _uiState.value = if (latestGeoJson != null) {
-                        val latestLegend = buildLegendFromGeoJson(latestGeoJson)
+                        val latestLegend = buildLegendFromGeoJson(latestGeoJson.content)
                         val currentContent = _uiState.value as? MapUiState.Content
 
                         currentContent?.copy(
-                            geoJson = latestGeoJson,
+                            geoJson = latestGeoJson.content,
                             mapStyleUrl = mapStyleUrl,
                             isSyncing = false,
+                            dataSource = MapDataSourceUi.Updated,
                             legend = latestLegend
                         ) ?: MapUiState.Content(
-                            geoJson = latestGeoJson,
+                            geoJson = latestGeoJson.content,
                             mapStyleUrl = mapStyleUrl,
                             isSyncing = false,
+                            dataSource = MapDataSourceUi.Updated,
                             legend = latestLegend
                         )
                     } else {
@@ -160,18 +164,20 @@ class MapViewModel @Inject constructor(
                     logSyncFailure(result.error)
 
                     _uiState.value = if (cachedGeoJson != null) {
-                        val cachedLegend = buildLegendFromGeoJson(cachedGeoJson)
+                        val cachedLegend = buildLegendFromGeoJson(cachedGeoJson.content)
                         val currentContent = _uiState.value as? MapUiState.Content
 
                         val contentState = currentContent?.copy(
-                            geoJson = cachedGeoJson,
+                            geoJson = cachedGeoJson.content,
                             mapStyleUrl = mapStyleUrl,
                             isSyncing = false,
+                            dataSource = cachedGeoJson.source.toMapDataSourceUi(),
                             legend = cachedLegend
                         ) ?: MapUiState.Content(
-                            geoJson = cachedGeoJson,
+                            geoJson = cachedGeoJson.content,
                             mapStyleUrl = mapStyleUrl,
                             isSyncing = false,
+                            dataSource = cachedGeoJson.source.toMapDataSourceUi(),
                             legend = cachedLegend
                         )
 
@@ -244,6 +250,13 @@ class MapViewModel @Inject constructor(
             "Cycleways synchronization failed",
             error
         )
+    }
+
+    private fun CyclewaysGeoJsonSource.toMapDataSourceUi(): MapDataSourceUi {
+        return when (this) {
+            CyclewaysGeoJsonSource.DownloadedCache -> MapDataSourceUi.DownloadedCache
+            CyclewaysGeoJsonSource.EmbeddedAsset -> MapDataSourceUi.EmbeddedAsset
+        }
     }
 
     private fun String.normalizeState(): String {
